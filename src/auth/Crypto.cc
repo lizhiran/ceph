@@ -162,18 +162,10 @@ static void nss_aes_operation(CK_ATTRIBUTE_TYPE op, const bufferptr& secret,
 
   SECStatus ret;
   int written;
-  // in is const, and PK11_CipherOp is not; C++ makes this hard to cheat,
-  // so just copy it to a temp buffer, at least for now
-  unsigned in_len;
-  unsigned char *in_buf;
-  in_len = in.length();
-  in_buf = (unsigned char*)malloc(in_len);
-  if (!in_buf)
-    throw std::bad_alloc();
-  in.copy(0, in_len, (char*)in_buf);
-  ret = PK11_CipherOp(ctx, (unsigned char*)out_tmp.c_str(), &written, out_tmp.length(),
-		      in_buf, in.length());
-  free(in_buf);
+  unsigned char *in_buf = const_cast<unsigned char*>(in.c_str());
+  ret = PK11_CipherOp(ctx, (unsigned char*)out_tmp.c_str(), &written,
+		      out_tmp.length(),
+		      in.length(), in.length());
   if (ret != SECSuccess) {
     ostringstream oss;
     oss << "NSS AES failed: " << PR_GetError();
